@@ -1,0 +1,18 @@
+
+#load_data {
+    margin: auto;
+    background-color: green;
+    background-image: linear-gradient(green, lightgreen);
+    color: #fff;
+}
+
+#udemy_report_data_submit {
+    width: 100%;
+    background-color: green;
+    background-image: linear-gradient(green, lightgreen);
+    color: #fff;
+}
+
+div.small-box {
+    text-align: center;
+}
