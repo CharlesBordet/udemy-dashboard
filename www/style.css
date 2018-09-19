@@ -13,6 +13,12 @@
     color: #fff;
 }
 
-div.small-box {
+.small-box {
     text-align: center;
+}
+
+@media (min-width: 768px) {
+    #ui_select_courses_compare .checkbox {
+      margin-top: 30px;
+    }
 }
