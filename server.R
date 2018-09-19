@@ -71,7 +71,7 @@ function(input, output, session) {
     })
     
     total_amount_of_refunds <- reactive({
-        refund_amount <- sum(req(dat_refunds())$`Instructor Refund Amount`)
+        refund_amount <- sum(req(dat_refunds())$`Instructor Refund Amount`, na.rm = T)
         refund_amount <- paste("$", refund_amount)
         refund_amount
     })
@@ -149,22 +149,28 @@ function(input, output, session) {
         sales_students <- 
             ggplot(sales1, aes_string(timeframe, "students", fill = "`Course Name`")) + 
             theme +
-            labs(title = "Monthly enrollment in Udemy courses", x = "Month", 
+            labs(title = paste0(stringr::str_to_title(timeframe), 
+                                "ly enrollment in Udemy courses"), 
+                 x = "Month", 
                  y = "Number of students")
         sales_revenue <- 
             ggplot(sales1, aes_string(timeframe, "revenue", fill = "`Course Name`")) +
             theme +
-            labs(title = "Monthly revenue of Udemy courses", x = "Month", 
+            labs(title = paste0(stringr::str_to_title(timeframe), 
+                                "ly revenue of Udemy courses"), 
+                 x = "Month", 
                  y = "Revenue ($)")
         refunds_number <-
             ggplot(refunds1, aes_string(timeframe, "refunds", fill = "`Course Name`")) +
             theme +
-            labs(title = "Number of refunds per month", x = "Month", 
+            labs(title = paste0("Number of refunds per ", timeframe), 
+                 x = "Month", 
                  y = "Refunds")
         refunds_amount <-
             ggplot(refunds1, aes_string(timeframe, "amount", fill = "`Course Name`")) +
             theme +
-            labs(title = "Amount of refunds per month", x = "Month", 
+            labs(title = paste0("Amount of refunds per ", timeframe), 
+                 x = "Month", 
                  y = "Amount ($)")
         if (compare) {
             sales_students <- sales_students +
