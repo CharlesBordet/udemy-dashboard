@@ -55,6 +55,7 @@ function(input, output, session) {
         refunds1
     })
     
+    # TOTAL KPIs
     total_number_of_students <- reactive({
         nrow(req(dat_sales()))
     })
@@ -93,6 +94,7 @@ function(input, output, session) {
         }
     })
     
+    # PICK TIMEFRAME
     output$ui_select_timeframe <- renderUI({
         radioButtons("select_timeframe", "Timeframe:", inline = TRUE,
                      choices = c("Month" = "month", "Week" = "week", "Day" = "day"))
@@ -134,6 +136,11 @@ function(input, output, session) {
         sales1 <- sales0[, .(students = .N,
                              revenue = sum(`Instructor Share`)), 
                          by = by]
+        if (compare) {
+            sales1[, user_value := revenue / students]
+        } else {
+            sales1[, user_value := sum(revenue) / sum(students), by = timeframe]
+        }
         
         refunds1 <- dat_refunds()
         refunds1 <- refunds1[, .(refunds = sum(!is.na(`Refund Date`)),
@@ -149,28 +156,37 @@ function(input, output, session) {
         sales_students <- 
             ggplot(sales1, aes_string(timeframe, "students", fill = "`Course Name`")) + 
             theme +
-            labs(title = paste0(stringr::str_to_title(timeframe), 
-                                "ly enrollment in Udemy courses"), 
-                 x = "Month", 
+            labs(title = paste0(switch(timeframe, "month" = "Monthly", 
+                                       "week" = "Weekly", "day" = "Daily"),
+                                " enrollment in Udemy courses"), 
+                 x = "", 
                  y = "Number of students")
         sales_revenue <- 
             ggplot(sales1, aes_string(timeframe, "revenue", fill = "`Course Name`")) +
             theme +
-            labs(title = paste0(stringr::str_to_title(timeframe), 
-                                "ly revenue of Udemy courses"), 
-                 x = "Month", 
+            labs(title = paste0(switch(timeframe, "month" = "Monthly", 
+                                       "week" = "Weekly", "day" = "Daily"),
+                                " revenue of Udemy courses"), 
+                 x = "", 
                  y = "Revenue ($)")
         refunds_number <-
             ggplot(refunds1, aes_string(timeframe, "refunds", fill = "`Course Name`")) +
             theme +
             labs(title = paste0("Number of refunds per ", timeframe), 
-                 x = "Month", 
+                 x = "", 
                  y = "Refunds")
         refunds_amount <-
             ggplot(refunds1, aes_string(timeframe, "amount", fill = "`Course Name`")) +
             theme +
             labs(title = paste0("Amount of refunds per ", timeframe), 
-                 x = "Month", 
+                 x = "", 
+                 y = "Amount ($)")
+        sales_user_value <-
+            ggplot(sales1, aes_string(timeframe, "user_value", col = "`Course Name`",
+                                      group = "`Course Name`")) +
+            theme +
+            labs(title = paste0("User value for each ", timeframe),
+                 x = "",
                  y = "Amount ($)")
         if (compare) {
             sales_students <- sales_students +
@@ -179,6 +195,7 @@ function(input, output, session) {
             sales_revenue <- sales_revenue + geom_bar(stat = "identity", position = "dodge")
             refunds_number <- refunds_number + geom_bar(stat = "identity", position = "dodge")
             refunds_amount <- refunds_amount + geom_bar(stat = "identity", position = "dodge")
+            sales_user_value <- sales_user_value + geom_point() + geom_line()
             tmp <- ggplot_gtable(ggplot_build(sales_students))
             leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
             legend <- tmp$grobs[[leg]]
@@ -187,6 +204,8 @@ function(input, output, session) {
             sales_revenue <- sales_revenue + geom_bar(stat = "identity", fill = "#00a65a")
             refunds_number <- refunds_number + geom_bar(stat = "identity", fill = "#f39c12")
             refunds_amount <- refunds_amount + geom_bar(stat = "identity", fill = "#dd4b39")
+            sales_user_value <- sales_user_value + geom_point(col = "#00c0ef") +
+                geom_line(col = "#00c0ef", size = 2)
         }
         if (timeframe %in% c("day", "week")) {
             sales_students <- sales_students + 
@@ -196,6 +215,8 @@ function(input, output, session) {
             refunds_number <- refunds_number + 
                 scale_x_date(breaks = "1 month", labels = scales::date_format("%b %y"))
             refunds_amount <- refunds_amount + 
+                scale_x_date(breaks = "1 month", labels = scales::date_format("%b %y"))
+            sales_user_value <- sales_user_value +
                 scale_x_date(breaks = "1 month", labels = scales::date_format("%b %y"))
         }
         
@@ -209,76 +230,15 @@ function(input, output, session) {
             grid.arrange(legend,
                          arrangeGrob(sales_students + theme(legend.position = "none"), 
                                      sales_revenue, refunds_number,
-                                     refunds_amount, ncol = ncol),
-                         nrow = 2, heights = c(1, 10))
+                                     refunds_amount, sales_user_value, ncol = ncol),
+                         legend,
+                         nrow = 3, heights = c(1, 10, 1))
         } else {
             grid.arrange(sales_students, sales_revenue, refunds_number,
-                         refunds_amount, ncol = ncol)
+                         refunds_amount, sales_user_value, ncol = ncol)
         }
     })
     outputOptions(output, "kpis_per_month", priority = 0)
-    
-    output$students_per_month <- renderPlot({
-        sales0 <- copy(values$sales)
-        sales0[, month := paste(substr(`Formatted Date`, 1, 3),
-                                substr(`Formatted Date`, 9, 10))]
-        sales0[, month := factor(month, levels = unique(sales0$month))]
-        sales1 <- sales0[, .(students = .N), by = month]
-        
-        ggplot(sales1, aes(x = month, y = students)) +
-            geom_bar(stat = "identity", fill = "#605ca8") +
-            labs(title = "Monthly enrollment in Udemy courses", x = "Month", 
-                 y = "Number of students") +
-            scale_y_continuous(breaks = seq(0, 2000, by = 100)) +
-            theme_minimal(base_size = 17) +
-            theme(panel.grid.major.x = element_blank()) 
-    })
-    
-    output$revenue_per_month <- renderPlot({
-        sales0 <- copy(values$sales)
-        sales0[, month := paste(substr(`Formatted Date`, 1, 3),
-                                substr(`Formatted Date`, 9, 10))]
-        sales0[, month := factor(month, levels = unique(sales0$month))]
-        sales1 <- sales0[, .(revenue = sum(`Instructor Share`)), by = month]
-        
-        ggplot(sales1, aes(x = month, y = revenue)) +
-            geom_bar(stat = "identity", fill = "#00a65a") +
-            labs(title = "Monthly revenue of Udemy courses", x = "Month", 
-                 y = "Revenue ($)") +
-            scale_y_continuous(breaks = seq(0, 2000, by = 250)) +
-            theme_minimal(base_size = 17) +
-            theme(panel.grid.major.x = element_blank()) 
-    })
-    
-    output$refunds_per_month <- renderPlot({
-        refunds0 <- copy(values$refunds)
-        refunds0[, month := format(as.Date(`Refund Date`), format = "%b %y")]
-        refunds0[, month := factor(month, levels = unique(refunds0$month))]
-        refunds1 <- refunds0[, .(refunds = .N), by = month]
-        
-        ggplot(refunds1, aes(x = month, y = refunds)) +
-            geom_bar(stat = "identity", fill = "#f39c12") +
-            labs(title = "Number of refunds per month", x = "Month", 
-                 y = "Refunds") +
-            scale_y_continuous(breaks = seq(0, 20, by = 5)) +
-            theme_minimal(base_size = 17) +
-            theme(panel.grid.major.x = element_blank()) 
-    })
-    
-    output$amount_of_refunds_per_month <- renderPlot({
-        refunds0 <- copy(values$refunds)
-        refunds0[, month := format(as.Date(`Refund Date`), format = "%b %y")]
-        refunds0[, month := factor(month, levels = unique(refunds0$month))]
-        refunds1 <- refunds0[, .(amount = sum(`Instructor Refund Amount`)), by = month]
-        
-        ggplot(refunds1, aes(x = month, y = amount)) +
-            geom_bar(stat = "identity", fill = "#dd4b39") +
-            labs(title = "Amount of refunds per month", x = "Month", 
-                 y = "Amount ($)") +
-            scale_y_continuous(breaks = seq(0, 2000, by = 10)) +
-            theme_minimal(base_size = 17) +
-            theme(panel.grid.major.x = element_blank()) 
-    })
     
     # ------ LOAD DATA --------------------------------------------------------
     

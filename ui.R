@@ -56,21 +56,17 @@ dashboardPage(
                 valueBoxOutput("kpi_total_amount_of_refunds", width = 3)
             ),
             fluidRow(
-                box(width = 12,
-                    column(width = 3,
-                           uiOutput("ui_select_courses")
-                    ),
-                    column(width = 3,
-                           uiOutput("ui_select_courses_compare")
-                    ),
-                    column(width = 3,
-                           uiOutput("ui_select_timeframe")
-                    )
-                )
+                column(width = 3,
+                       box(width = NULL,
+                           uiOutput("ui_select_courses"),
+                           uiOutput("ui_select_courses_compare"))),
+                column(width = 3,
+                       box(width = NULL,
+                           uiOutput("ui_select_timeframe")))
             ),
             fluidRow(
                 box(width = 12,
-                    plotOutput("kpis_per_month", height = "900px"))
+                    plotOutput("kpis_per_month", height = "1300px"))
             )
                 # Graph of revenue/number of students per month
                 # per course
