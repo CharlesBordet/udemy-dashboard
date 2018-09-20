@@ -10,15 +10,6 @@ dashboardPage(
         
         sidebarMenu(
             menuItem("Overview", tabName = "overview", icon = icon("dashboard")),
-            menuItem("Apprendre la Data Science avec R",
-                     tabName = "datascience-r", icon = icon("angle-double-right")),
-            menuItem("Le Deep Learning de A à Z", 
-                     tabName = "le-deep-learning-de-a-a-z",
-                     icon = icon("angle-double-right")),
-            menuItem("Intelligence Artificielle de A à Z",
-                     tabName = "intelligence-artificielle-az",
-                     icon = icon("angle-double-right")),
-            actionButton("load_data", " Load data", icon = icon("upload")),
             uiOutput("test")
         ),
         collapsed = TRUE
@@ -67,7 +58,12 @@ dashboardPage(
             fluidRow(
                 box(width = 12,
                     plotOutput("kpis_per_month", height = "1300px"))
+            ),
+            fluidRow(
+                actionButton("load_data", " Load data", icon = icon("upload"),
+                             class = "center-block")
             )
+                
                 # Graph of revenue/number of students per month
                 # per course
                 
